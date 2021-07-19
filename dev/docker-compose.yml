@@ -3,6 +3,18 @@ volumes:
   mongo-config:
   mongo-data:
 services:
+  users:
+    build:
+      context: ../
+      dockerfile: ./dev/Dockerfile
+    ports:
+      - 8080:8080
+    depends_on:
+      - mongo
+    environment:
+      - SPRING_DATA_MONGODB_DATABASE=users
+      - SPRING_DATA_MONGODB_AUTO_INDEX_CREATION=true
+      - SPRING_DATA_MONGODB_HOST=mongo
   mongo:
     image: mongo:4
     ports:
