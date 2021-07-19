@@ -17,7 +17,7 @@ import java.time.Clock
 @RequestMapping("/users", produces = [MediaType.APPLICATION_JSON_VALUE])
 class UserController(
         private val repository: UserRepository,
-        private val mapper: WebMapper,
+        private val userMapper: WebUserMapper,
         private val clock: Clock,
         private val passwordEncoder: PasswordEncoder,
         private val patchHandler: PatchHandler<User>
@@ -26,30 +26,30 @@ class UserController(
     @Autowired
     constructor(
             repository: UserRepository,
-            mapper: WebMapper,
+            userMapper: WebUserMapper,
             clock: Clock,
             passwordEncoder: PasswordEncoder,
             patchHandlers: List<PatchHandler<User>>?
-    ) : this(repository, mapper, clock, passwordEncoder, CompositePatchHandler(patchHandlers ?: emptyList()))
+    ) : this(repository, userMapper, clock, passwordEncoder, CompositePatchHandler(patchHandlers ?: emptyList()))
 
     @GetMapping
     fun getAll(): Flow<OutboundUser> {
-        return repository.findAll().map { mapper.toOutbound(it) }
+        return repository.findAll().map { userMapper.toOutbound(it) }
     }
 
     @GetMapping("/{id}")
     suspend fun getOne(@PathVariable("id") id: String): OutboundUser {
         val user = repository.findById(id) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        return mapper.toOutbound(user)
+        return userMapper.toOutbound(user)
     }
 
     @PostMapping
     suspend fun post(@Validated @RequestBody inboundUser: InboundUser): OutboundUser {
         val grantedDate = clock.instant()
-        var newUser = mapper.fromInbound(inboundUser, grantedDate)
+        var newUser = userMapper.fromInbound(inboundUser, grantedDate)
         newUser = newUser.copy(password = passwordEncoder.encode(newUser.password))
         val user = repository.insert(newUser)
-        return mapper.toOutbound(user)
+        return userMapper.toOutbound(user)
     }
 
     @PatchMapping("/{id}")
@@ -59,7 +59,7 @@ class UserController(
             user = patchHandler.tryApply(patch, user) ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST)
         }
         user = repository.update(user)
-        return mapper.toOutbound(user)
+        return userMapper.toOutbound(user)
     }
 
     @DeleteMapping("/{id}")

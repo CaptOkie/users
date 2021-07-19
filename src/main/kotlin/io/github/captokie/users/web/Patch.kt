@@ -1,14 +1,18 @@
 package io.github.captokie.users.web
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.core.JsonPointer
-import io.swagger.v3.oas.annotations.media.Schema
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.convertValue
+import io.github.captokie.users.data.User
+import org.springframework.http.HttpStatus
+import org.springframework.stereotype.Service
+import org.springframework.web.server.ResponseStatusException
+import java.time.Clock
 
 data class Patch(
         @JsonProperty("op")
         val operation: Operation,
-        @Schema(type = "string")
-        val path: JsonPointer,
+        val path: String,
         val value: Any?
 ) {
 
@@ -50,5 +54,56 @@ class CompositePatchHandler<T>(
             }
         }
         return null
+    }
+}
+
+private object JsonPointers {
+    val permissions = InboundUser::permissions.name
+}
+
+@Service
+class AddUserPermissionPatchHandler(
+        private val objectMapper: ObjectMapper,
+        private val clock: Clock,
+        private val userMapper: WebUserMapper
+) : PatchHandler<User> {
+
+    override fun tryApply(patch: Patch, target: User): User? {
+        if (patch.operation != Patch.Operation.ADD || patch.path != JsonPointers.permissions) {
+            return null
+        }
+
+        val rawValue = patch.value ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST)
+        val value: InboundPermission = objectMapper.convertValue(rawValue)
+        // TODO: Validate the value
+        if (target.permissions.any { it.type == value.type }) {
+            // From an API consumer point of view, it is nicer if adding a permission that exists doesn't cause an error
+            return target
+        }
+        val permissions = target.permissions + userMapper.fromInbound(value, clock.instant())
+        return target.copy(permissions = permissions)
+    }
+}
+
+@Service
+class RemoveUserPermissionPatchHandler(
+        private val objectMapper: ObjectMapper
+) : PatchHandler<User> {
+
+    override fun tryApply(patch: Patch, target: User): User? {
+        if (patch.operation != Patch.Operation.REMOVE || patch.path != JsonPointers.permissions) {
+            return null
+        }
+
+        val rawValue = patch.value ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST)
+        val value: InboundPermission = objectMapper.convertValue(rawValue)
+        // TODO: Validate the value
+        val permissions = target.permissions.filter { it.type != value.type }
+        if (permissions.size == target.permissions.size) {
+            // From an API consumer point of view, it is nicer if removing a permission that doesn't exist doesn't cause
+            // an error
+            return target
+        }
+        return target.copy(permissions = permissions)
     }
 }
