@@ -1,5 +1,6 @@
 package io.github.captokie.users.web
 
+import com.mongodb.reactivestreams.client.MongoClient
 import io.github.captokie.users.data.MongoUserRepository
 import io.github.captokie.users.data.Permission
 import io.github.captokie.users.data.User
@@ -31,6 +32,9 @@ import java.time.ZoneOffset
 @SpringBootTest(properties = ["spring.main.allow-bean-definition-overriding=true"])
 @AutoConfigureWebTestClient
 internal class UserControllerTest {
+
+    @field:MockBean
+    lateinit var mongoClient: MongoClient
 
     @field:MockBean
     lateinit var userRepository: MongoUserRepository
