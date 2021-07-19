@@ -2,10 +2,12 @@ package io.github.captokie.users.web
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.core.JsonPointer
+import io.swagger.v3.oas.annotations.media.Schema
 
 data class Patch(
         @JsonProperty("op")
         val operation: Operation,
+        @Schema(type = "string")
         val path: JsonPointer,
         val value: Any?
 ) {

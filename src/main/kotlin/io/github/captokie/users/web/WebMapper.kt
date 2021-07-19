@@ -13,6 +13,8 @@ interface WebMapper {
 
     fun toOutbound(user: User): OutboundUser
 
+    fun toOutbound(permission: Permission): OutboundPermission
+
     fun fromInbound(user: InboundUser, @Context grantedDate: Instant): NewUser
 
     @Mapping(target = "grantedDate", expression = "java(grantedDate)")
