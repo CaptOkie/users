@@ -1,16 +1,16 @@
 version: "3.7"
 volumes:
-  postgres-data:
+  mongo-config:
+  mongo-data:
 services:
-  postgres:
-    image: postgres:13
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: users
+  mongo:
+    image: mongo:4
+    ports:
+      - 27017:27017
     volumes:
       - type: volume
-        source: postgres-data
-        target: /var/lib/postgresql/data
-    ports:
-      - 5432:5432
+        source: mongo-config
+        target: /data/configdb
+      - type: volume
+        source: mongo-data
+        target: /data/db

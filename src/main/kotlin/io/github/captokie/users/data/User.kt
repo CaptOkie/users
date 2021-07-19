@@ -11,7 +11,7 @@ data class Permission(
 
 data class User(
         val id: String,
-        val version: String,
+        val version: Long,
         val familyName: String,
         val givenName: String,
         val birthdate: LocalDate,
@@ -29,7 +29,7 @@ data class NewUser(
         val permissions: List<Permission>
 ) {
 
-    fun toUser(id: String, version: String) =
+    fun toUser(id: String, version: Long) =
             User(id, version, familyName, givenName, birthdate, email, password, permissions)
 }
 
@@ -41,7 +41,7 @@ interface UserRepository {
 
     suspend fun insert(newUser: NewUser): User
 
-    suspend fun update(user: User): User
+    suspend fun update(updatedUser: User): User
 
     suspend fun deleteById(id: String)
 }

@@ -5,6 +5,7 @@ import io.github.captokie.users.data.UserRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -12,7 +13,6 @@ import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import java.time.Clock
-import javax.validation.Valid
 
 @RestController
 @RequestMapping("/users", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -67,5 +67,14 @@ class UserController(
     @ResponseStatus(HttpStatus.NO_CONTENT)
     suspend fun delete(@PathVariable("id") id: String) {
         repository.deleteById(id)
+    }
+}
+
+@ControllerAdvice
+class UserControllerAdvice {
+
+    @ExceptionHandler
+    suspend fun handle(e: DuplicateKeyException) {
+        throw ResponseStatusException(HttpStatus.CONFLICT, null, e)
     }
 }
