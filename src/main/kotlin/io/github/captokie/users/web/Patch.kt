@@ -9,6 +9,7 @@ import javax.validation.Valid
 import javax.validation.constraints.NotBlank
 import javax.validation.constraints.NotNull
 import javax.validation.constraints.Pattern
+import javax.validation.constraints.Size
 
 /**
  * Represents a single JSON patch operation
@@ -62,7 +63,7 @@ data class Patch(
  *                   public for validation to work.
  */
 data class PatchRequest @JsonCreator constructor(
-        @field:Valid @field:JsonValue val patches: MutableList<Patch>
+        @field:Size(min = 1, max = 100) @field:Valid @field:JsonValue val patches: MutableList<Patch>
 ) : MutableList<Patch> by patches {
 
     /**
