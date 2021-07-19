@@ -26,6 +26,9 @@ dependencyManagement {
             entry("springdoc-openapi-webflux-core")
             entry("springdoc-openapi-kotlin")
         }
+        dependencySet("org.mockito.kotlin:3.2.0") {
+            entry("mockito-kotlin")
+        }
     }
 }
 
@@ -49,6 +52,7 @@ dependencies {
     kapt("org.mapstruct:mapstruct-processor")
     // Test dependencies
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.mockito.kotlin:mockito-kotlin")
 }
 
 kapt {

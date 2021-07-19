@@ -3,15 +3,8 @@ package io.github.captokie.users.web
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.convertValue
-import io.github.captokie.users.data.User
-import org.springframework.http.HttpStatus
-import org.springframework.stereotype.Service
-import org.springframework.validation.BeanPropertyBindingResult
-import org.springframework.validation.Validator
+import io.github.captokie.users.web.Patch.Operation
 import org.springframework.web.server.ResponseStatusException
-import java.time.Clock
 import javax.validation.Valid
 import javax.validation.constraints.NotBlank
 import javax.validation.constraints.NotNull
@@ -31,7 +24,7 @@ data class Patch(
         @field:NotBlank
         @field:Pattern(regexp = "^\\w{1,100}$")
         val path: String,
-        val value: Any?
+        val value: Any? = null
 ) {
 
     /**
@@ -118,84 +111,5 @@ class CompositePatchHandler<T>(
             }
         }
         return null
-    }
-}
-
-/**
- * All the JSON paths used in the [PatchHandler]s
- */
-private object JsonPaths {
-    /**
-     * This path references the user's list of permissions
-     */
-    val permissions = InboundUser::permissions.name
-}
-
-/**
- * An implementation of [PatchHandler] that handles adding new permissions to a user. If the permission already exists
- * on the user then this handler will still succeed.
- */
-@Service
-class AddUserPermissionPatchHandler(
-        private val objectMapper: ObjectMapper,
-        private val validator: Validator,
-        private val clock: Clock,
-        private val userMapper: WebUserMapper
-) : PatchHandler<User> {
-
-    override fun tryApply(patch: Patch, target: User): User? {
-        if (patch.operation != Patch.Operation.ADD || patch.path != JsonPaths.permissions) {
-            return null
-        }
-
-        val rawValue = patch.value ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST)
-        val value: InboundPermission = objectMapper.convertValue(rawValue)
-
-        val errors = BeanPropertyBindingResult(value, "permission")
-        validator.validate(value, errors)
-        if (errors.hasErrors()) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST)
-        }
-
-        if (target.permissions.any { it.type == value.type }) {
-            // From an API consumer point of view, it is nicer if adding a permission that exists doesn't cause an error
-            return target
-        }
-        val permissions = target.permissions + userMapper.toPermission(value, clock.instant())
-        return target.copy(permissions = permissions)
-    }
-}
-
-/**
- * An implementation of [PatchHandler] that handles removing existing permissions from user. If the permission doesn't
- * exist on the user then this handler will still succeed.
- */
-@Service
-class RemoveUserPermissionPatchHandler(
-        private val objectMapper: ObjectMapper,
-        private val validator: Validator
-) : PatchHandler<User> {
-
-    override fun tryApply(patch: Patch, target: User): User? {
-        if (patch.operation != Patch.Operation.REMOVE || patch.path != JsonPaths.permissions) {
-            return null
-        }
-
-        val rawValue = patch.value ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST)
-        val value: InboundPermission = objectMapper.convertValue(rawValue)
-
-        val errors = BeanPropertyBindingResult(value, "permission")
-        validator.validate(value, errors)
-        if (errors.hasErrors()) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST)
-        }
-
-        val permissions = target.permissions.filter { it.type != value.type }
-        if (permissions.size == target.permissions.size) {
-            // From an API consumer point of view, it is nicer if removing a permission that doesn't exist doesn't cause
-            // an error
-            return target
-        }
-        return target.copy(permissions = permissions)
     }
 }
