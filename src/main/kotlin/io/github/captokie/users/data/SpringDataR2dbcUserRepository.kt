@@ -1,15 +1,11 @@
 package io.github.captokie.users.data
 
-import io.github.captokie.users.web.User
-import io.github.captokie.users.web.UserRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import org.springframework.dao.DataRetrievalFailureException
 import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.stereotype.Repository
 import org.springframework.util.IdGenerator
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentMap
 
 @Repository
 class SpringDataR2dbcUserRepository(
@@ -28,24 +24,21 @@ class SpringDataR2dbcUserRepository(
         return users[id]
     }
 
-    override suspend fun insert(user: User): User {
+    override suspend fun insert(newUser: NewUser): User {
         val id = idGenerator.generateId().toString()
         val version = idGenerator.generateId().toString()
-        val fullUser = user.copy(id = id, version = version)
-        users[id] = fullUser
-        return fullUser
+        val user = newUser.toUser(id, version)
+        users[id] = user
+        return user
     }
 
     override suspend fun update(user: User): User {
-        val id = user.id ?: throw IllegalArgumentException("ID must be set")
-        val version = user.version ?: throw IllegalArgumentException("ID must be set")
-
-        return users.computeIfPresent(id) { _, oldUser ->
-            if (version != oldUser.version) {
-                throw OptimisticLockingFailureException("expected version: ${oldUser.version}, actual version: $version")
+        return users.computeIfPresent(user.id) { _, oldUser ->
+            if (user.version != oldUser.version) {
+                throw OptimisticLockingFailureException("expected version: ${oldUser.version}, actual version: ${user.version}")
             }
             user.copy(version = idGenerator.generateId().toString())
-        } ?: throw OptimisticLockingFailureException("No user found for id: $id")
+        } ?: throw OptimisticLockingFailureException("No user found for id: ${user.id}")
     }
 
     override suspend fun deleteById(id: String) {

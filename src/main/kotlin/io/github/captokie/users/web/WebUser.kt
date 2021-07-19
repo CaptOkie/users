@@ -1,23 +1,7 @@
 package io.github.captokie.users.web
 
-import java.time.Instant
+import io.github.captokie.users.data.Permission
 import java.time.LocalDate
-
-data class User(
-        val id: String?,
-        val version: String?,
-        val familyName: String,
-        val givenName: String,
-        val birthdate: LocalDate,
-        val email: String,
-        val password: String,
-        val permissions: List<Permission> = emptyList()
-)
-
-data class Permission(
-        val type: String,
-        val grantedDate: Instant
-)
 
 data class OutboundUser(
         val id: String,
@@ -35,5 +19,7 @@ data class InboundUser(
         val birthdate: LocalDate,
         val email: String,
         val password: String,
-        val permissions: List<Permission> = emptyList()
+        val permissions: List<InboundPermission> = emptyList()
 )
+
+data class InboundPermission(val type: String)

@@ -51,6 +51,7 @@ gradle-app.setting
 .idea/**/misc.xml
 .idea/**/vcs.xml
 .idea/**/libraries-with-intellij-classes.xml
+.idea/**/codeStyles/
 
 # AWS User-specific
 .idea/**/aws.xml
