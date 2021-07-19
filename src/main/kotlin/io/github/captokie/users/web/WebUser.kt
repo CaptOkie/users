@@ -9,6 +9,8 @@ import org.mapstruct.Mapper
 import org.mapstruct.Mapping
 import java.time.Instant
 import java.time.LocalDate
+import javax.validation.Valid
+import javax.validation.constraints.*
 
 data class OutboundPermission(
         val type: String,
@@ -26,16 +28,25 @@ data class OutboundUser(
 )
 
 data class InboundPermission(
+        @field:ValidString
         val type: String
 )
 
 data class InboundUser(
+        @field:ValidString
         val familyName: String,
+        @field:ValidString
         val givenName: String,
+        @field:NotNull
+        @field:PastOrPresent
         val birthdate: LocalDate,
+        @field:NotBlank
+        @field:Email
         val email: String,
+        @field:ValidString
         @Schema(format = "password")
         val password: String,
+        @field:Valid
         val permissions: List<InboundPermission> = emptyList()
 )
 

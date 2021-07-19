@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 import java.time.Clock
+import javax.validation.Valid
 
 @RestController
 @RequestMapping("/users", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -53,9 +54,9 @@ class UserController(
     }
 
     @PatchMapping("/{id}")
-    suspend fun patch(@PathVariable("id") id: String, @Validated @RequestBody patches: List<Patch>): OutboundUser {
+    suspend fun patch(@PathVariable("id") id: String, @Validated @RequestBody request: PatchRequest): OutboundUser {
         var user = repository.findById(id) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        for (patch in patches) {
+        for (patch in request.patches) {
             user = patchHandler.tryApply(patch, user) ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST)
         }
         user = repository.update(user)

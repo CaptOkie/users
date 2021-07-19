@@ -1,17 +1,28 @@
 package io.github.captokie.users.web
 
+import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonValue
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.convertValue
 import io.github.captokie.users.data.User
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import org.springframework.validation.BeanPropertyBindingResult
+import org.springframework.validation.Validator
 import org.springframework.web.server.ResponseStatusException
 import java.time.Clock
+import javax.validation.Valid
+import javax.validation.constraints.NotBlank
+import javax.validation.constraints.NotNull
+import javax.validation.constraints.Pattern
 
 data class Patch(
+        @field:NotNull
         @JsonProperty("op")
         val operation: Operation,
+        @field:NotBlank
+        @field:Pattern(regexp = "^\\w+$")
         val path: String,
         val value: Any?
 ) {
@@ -35,6 +46,13 @@ data class Patch(
         @JsonProperty("test")
         TEST,
     }
+}
+
+data class PatchRequest @JsonCreator constructor(
+        @field:Valid @field:JsonValue val patches: MutableList<Patch>
+) : MutableList<Patch> by patches {
+
+    constructor() : this(mutableListOf())
 }
 
 interface PatchHandler<T> {
@@ -64,6 +82,7 @@ private object JsonPointers {
 @Service
 class AddUserPermissionPatchHandler(
         private val objectMapper: ObjectMapper,
+        private val validator: Validator,
         private val clock: Clock,
         private val userMapper: WebUserMapper
 ) : PatchHandler<User> {
@@ -75,7 +94,13 @@ class AddUserPermissionPatchHandler(
 
         val rawValue = patch.value ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST)
         val value: InboundPermission = objectMapper.convertValue(rawValue)
-        // TODO: Validate the value
+
+        val errors = BeanPropertyBindingResult(value, "permission")
+        validator.validate(value, errors)
+        if (errors.hasErrors()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST)
+        }
+
         if (target.permissions.any { it.type == value.type }) {
             // From an API consumer point of view, it is nicer if adding a permission that exists doesn't cause an error
             return target
@@ -87,7 +112,8 @@ class AddUserPermissionPatchHandler(
 
 @Service
 class RemoveUserPermissionPatchHandler(
-        private val objectMapper: ObjectMapper
+        private val objectMapper: ObjectMapper,
+        private val validator: Validator
 ) : PatchHandler<User> {
 
     override fun tryApply(patch: Patch, target: User): User? {
@@ -97,7 +123,13 @@ class RemoveUserPermissionPatchHandler(
 
         val rawValue = patch.value ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST)
         val value: InboundPermission = objectMapper.convertValue(rawValue)
-        // TODO: Validate the value
+
+        val errors = BeanPropertyBindingResult(value, "permission")
+        validator.validate(value, errors)
+        if (errors.hasErrors()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST)
+        }
+
         val permissions = target.permissions.filter { it.type != value.type }
         if (permissions.size == target.permissions.size) {
             // From an API consumer point of view, it is nicer if removing a permission that doesn't exist doesn't cause
