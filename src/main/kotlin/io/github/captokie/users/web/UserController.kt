@@ -35,22 +35,22 @@ class UserController(
 
     @GetMapping
     fun getAll(): Flow<OutboundUser> {
-        return repository.findAll().map { userMapper.toOutbound(it) }
+        return repository.findAll().map { userMapper.fromUser(it) }
     }
 
     @GetMapping("/{id}")
     suspend fun getOne(@PathVariable("id") id: String): OutboundUser {
         val user = repository.findById(id) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        return userMapper.toOutbound(user)
+        return userMapper.fromUser(user)
     }
 
     @PostMapping
     suspend fun post(@Validated @RequestBody inboundUser: InboundUser): OutboundUser {
         val grantedDate = clock.instant()
-        var newUser = userMapper.fromInbound(inboundUser, grantedDate)
+        var newUser = userMapper.toUser(inboundUser, grantedDate)
         newUser = newUser.copy(password = passwordEncoder.encode(newUser.password))
         val user = repository.insert(newUser)
-        return userMapper.toOutbound(user)
+        return userMapper.fromUser(user)
     }
 
     @PatchMapping("/{id}")
@@ -60,7 +60,7 @@ class UserController(
             user = patchHandler.tryApply(patch, user) ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST)
         }
         user = repository.update(user)
-        return userMapper.toOutbound(user)
+        return userMapper.fromUser(user)
     }
 
     @DeleteMapping("/{id}")
